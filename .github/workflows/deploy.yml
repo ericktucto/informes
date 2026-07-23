@@ -2,58 +2,63 @@
 name: Deploy static content to Pages
 
 on:
-  # Runs on pushes targeting the default branch
   push:
     branches: ['main']
-  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
-# Sets the GITHUB_TOKEN permissions to allow deployment to GitHub Pages
 permissions:
   contents: read
   pages: write
   id-token: write
 
-# Allow one concurrent deployment
 concurrency:
   group: 'pages'
   cancel-in-progress: true
 
 jobs:
-  # Single deploy job since we're just deploying
   deploy:
+    name: Build y Deploy
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      # 1. Descarga el código del repositorio
+      - name: Checkout del repositorio
         uses: actions/checkout@v4
 
+      # 2. Instala pnpm (debe ir ANTES de setup-node para que el cache funcione)
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
+        with:
+          version: latest
 
-      - name: Set up Node
+      # 3. Configura Node.js con cache de pnpm
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: lts/*
+          node-version: '22'
           cache: 'pnpm'
 
-      - name: Install dependencies
+      # 4. Instala dependencias usando pnpm
+      - name: Instalar dependencias
         run: pnpm install --frozen-lockfile
 
+      # 5. Build de producción (genera la carpeta /dist)
       - name: Build
         run: pnpm run build
 
+      # 6. Configura GitHub Pages
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
+      # 7. Sube la carpeta dist como artefacto
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Upload dist folder
           path: './dist'
 
+      # 8. Deploy a GitHub Pages
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
